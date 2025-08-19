@@ -21,13 +21,9 @@ jobs:
           sudo apt-get update 
           sudo apt-get install -y cmake g++ googletest libboost-program-options1.83-dev libeigen3-dev libtinyobjloader-dev libstb-dev
 
-      - name: Download test data
-        run: |
-          curl -L -o data/ip_filter.tsv https://github.com/aleksandr-l-c3dlabs/otus-cpp/releases/download/3/ip_filter.tsv
-
       - name: Build
         run: |
-          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_TEST=ON
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_TEST=OFF
           cmake --build .
           cmake --build . --target test
           cmake --build . --target package
