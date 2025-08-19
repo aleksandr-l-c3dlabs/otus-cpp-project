@@ -31,7 +31,6 @@ jobs:
           cmake --build .
           cmake --build . --target test
           cmake --build . --target package
-          rm *-Unspecified.deb
       
       - name: Create Release
         id: create_release
