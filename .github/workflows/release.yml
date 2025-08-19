@@ -1,0 +1,55 @@
+name: 'C++ CI'
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y cmake g++ googletest libboost-program-options1.83-dev libeigen3-dev libtinyobjloader-dev libstb-dev
+
+      - name: Download test data
+        run: |
+          curl -L -o data/ip_filter.tsv https://github.com/aleksandr-l-c3dlabs/otus-cpp/releases/download/3/ip_filter.tsv
+
+      - name: Build
+        run: |
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_TEST=ON
+          cmake --build .
+          cmake --build . --target test
+          cmake --build . --target package
+          rm *-Unspecified.deb
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for deb_file in *.deb; do
+            echo "Uploading $deb_file"
+            gh release upload ${{ github.run_number }} "$deb_file" \
+              --repo ${{ github.repository }}
+          done

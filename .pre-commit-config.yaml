@@ -1,0 +1,21 @@
+repos:
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v19.1.7
+    hooks:
+      - id: clang-format
+        types_or: [c++, c]
+
+  - repo: local
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy
+        entry: clang-tidy
+        args: [
+          --config-file=.clang-tidy,
+          -p=build
+        ]
+        language: system
+        types: [c++]
+        pass_filenames: true
+        verbose: true
