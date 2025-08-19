@@ -83,7 +83,7 @@ int main(const int argc, const char* argv[]) {
       "direction,d", po::value<Vec3>()->default_value({0, 0, -1}),
       "Camera direction vector")(
       "width,w", po::value<size_t>()->default_value(400), "Viewport width")(
-      "height,h", po::value<size_t>()->default_value(300), "Viewport height")(
+      "height,g", po::value<size_t>()->default_value(300), "Viewport height")(
       "threads,t", po::value<size_t>()->default_value(4), "Used thread count");
 
   try {
@@ -102,7 +102,7 @@ int main(const int argc, const char* argv[]) {
   auto m = vm["model"].as<std::string>();
   auto o = vm["output"].as<std::string>();
   auto p = vm["position"].as<std::optional<Vec3>>();
-  Vec3 pos = p.has_value() ? p.value() : Vec3{0, 0, 0};
+  auto pos = p.value_or(Vec3{0, 0, 0});
   auto dir = vm["direction"].as<Vec3>();
   auto up = vm["up"].as<Vec3>();
   auto w = vm["width"].as<size_t>();
@@ -121,7 +121,7 @@ int main(const int argc, const char* argv[]) {
   }
   Renderer renderer(std::make_shared<const Model>(model.value()), camera, w, h);
   if (!p.has_value()) {
-    camera->zoom_to_fit();
+    camera->zoom_to_fit(renderer.get_root_bbox());
   }
 
   auto progress_callback = [](float progress) {

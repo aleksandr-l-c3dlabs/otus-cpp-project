@@ -36,6 +36,9 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 target_link_libraries(rtr-model
+    PUBLIC
+        rtr-utils
+        rtr-bvh
     PRIVATE 
         tinyobjloader::tinyobjloader
         Eigen3::Eigen

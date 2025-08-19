@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <execution>
 #include <iostream>
+#include <mutex>
 #include <unordered_map>
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -122,14 +123,12 @@ std::optional<Model> Model::import(const fs::path& path) {
       mesh.material = model.materials[mat_id];
     }
 
+    std::mutex mesh_mutex;
     std::unordered_map<PackedVertex, size_t> unique_vertices;
     mesh.indices.reserve(indices.size());
 
     const size_t block_size = 1024;
     const size_t blocks = (indices.size() + block_size - 1) / block_size;
-
-    std::vector<std::vector<PackedVertex>> block_vertices(blocks);
-    std::vector<std::vector<size_t>> block_indices(blocks);
     std::vector<size_t> blocks_vec(blocks);
     std::iota(blocks_vec.begin(), blocks_vec.end(), 0);
 
@@ -155,33 +154,23 @@ std::optional<Model> Model::import(const fs::path& path) {
               memcpy(vertex.texcoord.data(),
                      &local_attrib.texcoords[2 * idx.texcoord_index], 8);
 
-            if (auto it = unique_vertices.find(vertex);
-                it != unique_vertices.end()) {
-              block_indices[block].push_back(it->second);
-            } else {
-              uint32_t new_idx = block_vertices[block].size();
-              block_vertices[block].push_back(vertex);
-              unique_vertices[vertex] = new_idx;
-              block_indices[block].push_back(new_idx);
+            {
+              std::lock_guard<std::mutex> lock(mesh_mutex);
+
+              if (auto it = unique_vertices.find(vertex);
+                  it != unique_vertices.end()) {
+                mesh.indices.push_back(it->second);
+              } else {
+                uint32_t new_idx = mesh.vertexes.size();
+                mesh.vertexes.push_back(vertex);
+                unique_vertices[vertex] = new_idx;
+                mesh.indices.push_back(new_idx);
+              }
             }
           }
         });
 
-    // join
-    size_t total_vertices = 0;
-    for (const auto& bv : block_vertices)
-      total_vertices += bv.size();
-
-    mesh.vertexes.reserve(total_vertices);
-    for (size_t block = 0; block < blocks; block++) {
-      size_t vertex_offset = mesh.vertexes.size();
-      mesh.vertexes.insert(mesh.vertexes.end(), block_vertices[block].begin(),
-                           block_vertices[block].end());
-
-      for (size_t idx : block_indices[block]) {
-        mesh.indices.push_back(vertex_offset + idx);
-      }
-    }
+    mesh.bvh = std::make_shared<BVHAccel>(mesh.vertexes, mesh.indices);
 
     model.meshes.emplace_back(std::move(mesh));
   }

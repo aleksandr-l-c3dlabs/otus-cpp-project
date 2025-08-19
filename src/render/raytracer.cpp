@@ -6,8 +6,6 @@
 #include <limits>
 #include <numbers>
 
-#include <iostream>
-
 namespace rtr {
 
 using Vector3f = Eigen::Vector3f;
@@ -31,7 +29,7 @@ Vector3f refract(const Vector3f& incident, const Vector3f& normal,
 }
 
 Vector3f texture_color(const Vector3f& color, std::shared_ptr<Image> texture,
-                       const RayTracer::HitRecord& rec) {
+                       const HitRecord& rec) {
   if (!texture)
     return color;
   return texture->sample(rec.tex_coord.x(), rec.tex_coord.y());
@@ -46,14 +44,21 @@ void RayTracer::remove_light(const Light& light) {
                 lights_.end());
 }
 
-void RayTracer::build_bvh() {}
+void RayTracer::build_bvh() {
+  for (const auto& mesh : model_->get_meshes()) {
+    if (mesh.bvh) {
+      AABB mesh_bbox = mesh.bvh->get_root_bbox();
+      bbox_.expand(mesh_bbox);
+    }
+  }
+}
 
 Vector3f RayTracer::trace_pixel(float u, float v, int max_depth) {
   Ray ray = generate_ray(u, v);
   return trace_ray(ray, max_depth);
 }
 
-RayTracer::Ray RayTracer::generate_ray(float u, float v) const {
+Ray RayTracer::generate_ray(float u, float v) const {
   Vector3f origin = camera_->get_position();
   Vector3f direction = camera_->generate_ray(u, v);
   return Ray(origin, direction);
@@ -103,20 +108,31 @@ Vector3f RayTracer::trace_ray(const Ray& ray, int depth) {
 
 bool RayTracer::hit_model(const Ray& ray, float t_min, float t_max,
                           HitRecord& rec) const {
+  if (!bbox_.intersect(ray, t_min, t_max))
+    return false;
+
   HitRecord temp_rec;
   float closest_so_far = t_max;
   bool hit_anything = false;
 
   for (const auto& mesh : model_->get_meshes()) {
-    for (size_t i = 0; i < mesh.indices.size(); i += 3) {
-      const auto& v0 = mesh.vertexes[mesh.indices[i]];
-      const auto& v1 = mesh.vertexes[mesh.indices[i + 1]];
-      const auto& v2 = mesh.vertexes[mesh.indices[i + 2]];
+    auto material_ptr = mesh.material.lock();
+    if (!material_ptr)
+      continue;
+
+    const auto& indices =
+        mesh.bvh ? mesh.bvh->get_intersect_indices(ray, t_min, t_max)
+                 : IntersectIndices(mesh.indices);
+
+    for (size_t i = 0; i < indices.size(); i += 3) {
+      const auto& v0 = mesh.vertexes[indices[i]];
+      const auto& v1 = mesh.vertexes[indices[i + 1]];
+      const auto& v2 = mesh.vertexes[indices[i + 2]];
 
       if (hit_triangle(ray, v0, v1, v2, t_min, closest_so_far, temp_rec)) {
         closest_so_far = temp_rec.t;
         rec = temp_rec;
-        rec.material = mesh.material.lock();
+        rec.material = material_ptr;
         hit_anything = true;
       }
     }
@@ -193,8 +209,9 @@ Vector3f RayTracer::calculate_lighting(const HitRecord& rec) {
   Vector3f view_dir = (camera_->get_position() - rec.point).normalized();
 
   for (const auto& light : lights_) {
-    Vector3f light_dir = (light.position - rec.point).normalized();
-    float distance = (light.position - rec.point).norm();
+    Vector3f light_dir = light.position - rec.point;
+    float distance = light_dir.norm();
+    light_dir = light_dir.normalized();
     float attenuation = 1.0 / (distance * distance);
 
     // diffuse

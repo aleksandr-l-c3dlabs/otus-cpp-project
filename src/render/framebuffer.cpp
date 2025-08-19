@@ -12,6 +12,7 @@ FrameBuffer::FrameBuffer(size_t width, size_t height, float def)
 FrameBuffer::~FrameBuffer() {
   if (buffer_ != nullptr) {
     delete[] buffer_;
+    buffer_ = nullptr;
   }
 }
 

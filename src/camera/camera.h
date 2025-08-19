@@ -2,6 +2,8 @@
 
 #include <eigen3/Eigen/Core>
 
+#include "aabb.h"
+
 namespace rtr {
 
 class Camera {
@@ -26,7 +28,7 @@ class Camera {
   void rotate(float yaw_offset, float pitch_offset);
   void rotate_around_point(const Vector3f& point, float angle_degrees,
                            const Vector3f& axis);
-  void zoom_to_fit();
+  void zoom_to_fit(const AABB& bbox);
 
   void set_position(const Vector3f& position);
   void set_look_at(const Vector3f& look_at);

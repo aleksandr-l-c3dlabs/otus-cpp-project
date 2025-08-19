@@ -18,6 +18,7 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 target_link_libraries(rtr-render
     PUBLIC
+        rtr-utils
         rtr-model
         rtr-camera
     PRIVATE 

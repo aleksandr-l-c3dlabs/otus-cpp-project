@@ -1,3 +1,5 @@
+add_subdirectory(utils)
+add_subdirectory(bvh)
 add_subdirectory(camera)
 add_subdirectory(model)
 add_subdirectory(render)

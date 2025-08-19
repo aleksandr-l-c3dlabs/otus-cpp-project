@@ -4,6 +4,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include "aabb.h"
 #include "camera.h"
 #include "framebuffer.h"
 #include "model.h"
@@ -25,6 +26,9 @@ class Renderer {
     return frame_buffer_;
   }
   [[nodiscard]] float get_progress() const { return progress_; }
+  [[nodiscard]] AABB get_root_bbox() const {
+    return ray_tracer_.get_root_bbox();
+  };
 
  private:
   RayTracer ray_tracer_;

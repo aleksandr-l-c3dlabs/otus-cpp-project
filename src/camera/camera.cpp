@@ -94,7 +94,19 @@ void Camera::rotate_around_point(const Vector3f& point, float angle_degrees,
   update_vectors();
 }
 
-void Camera::zoom_to_fit() {}
+void Camera::zoom_to_fit(const AABB& bbox) {
+  Vector3f forward = get_forward();
+  Vector3f up = get_up();
+  Vector3f center = (bbox.min + bbox.max) * 0.5f;
+  Vector3f size = bbox.max - bbox.min;
+
+  float max_dim = std::max({size.x(), size.y(), size.z()});
+  float fov_rad = fov_ * std::numbers::pi_v<float> / 180.0f;
+  float distance = (max_dim * 0.5f) / std::tan(fov_rad * 0.5f) * 1.5f;
+
+  Vector3f new_position = center - forward * distance;
+  set_position(new_position);
+}
 
 void Camera::set_position(const Vector3f& position) {
   position_ = position;
@@ -122,6 +134,12 @@ void Camera::set_aspect_ratio(float aspect_ratio) {
 }
 
 void Camera::update_vectors() {
+  if ((look_at_ - position_).squaredNorm() <
+      std::numeric_limits<float>::epsilon()) {
+    look_at_ = position_ +
+               (look_at_.isZero() ? Vector3f(0.0f, 0.0f, -1.0f) : look_at_);
+  }
+
   // If look_at was changed directly, update yaw and pitch
   if (!forward_.isApprox((look_at_ - position_).normalized())) {
     forward_ = (look_at_ - position_).normalized();
