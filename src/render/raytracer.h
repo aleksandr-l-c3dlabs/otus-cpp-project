@@ -32,7 +32,7 @@ class RayTracer {
   void build_bvh();
   [[nodiscard]] AABB get_root_bbox() const { return bbox_; };
 
- private:
+ protected:
   [[nodiscard]] Ray generate_ray(float u, float v) const;
 
   [[nodiscard]] Vector3f trace_ray(const Ray& ray, int depth);
@@ -40,9 +40,9 @@ class RayTracer {
   bool hit_model(const Ray& ray, float t_min, float t_max,
                  HitRecord& rec) const;
 
-  bool hit_triangle(const Ray& ray, const PackedVertex& v0,
-                    const PackedVertex& v1, const PackedVertex& v2, float t_min,
-                    float t_max, HitRecord& rec) const;
+  static bool hit_triangle(const Ray& ray, const PackedVertex& v0,
+                           const PackedVertex& v1, const PackedVertex& v2,
+                           float t_min, float t_max, HitRecord& rec);
 
   [[nodiscard]] Vector3f calculate_lighting(const HitRecord& rec);
 

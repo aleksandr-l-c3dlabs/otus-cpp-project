@@ -21,20 +21,7 @@ struct AABB {
     max = max.cwiseMax(other.max);
   }
 
-  bool intersect(const Ray& ray, float t_min, float t_max) const {
-    for (int i = 0; i < 3; ++i) {
-      float inv_dir = 1.0f / ray.direction[i];
-      float t0 = (min[i] - ray.origin[i]) * inv_dir;
-      float t1 = (max[i] - ray.origin[i]) * inv_dir;
-      if (inv_dir < 0.0f)
-        std::swap(t0, t1);
-      t_min = std::max(t0, t_min);
-      t_max = std::min(t1, t_max);
-      if (t_max <= t_min)
-        return false;
-    }
-    return true;
-  }
+  bool intersect(const Ray& ray, float t_min, float t_max) const;
 
   void clear() {
     min = Eigen::Vector3f::Constant(std::numeric_limits<float>::max());

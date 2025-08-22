@@ -6,27 +6,14 @@
 #include <limits>
 #include <numbers>
 
+#include "reflect.h"
+
 namespace rtr {
 
 using Vector3f = Eigen::Vector3f;
 
 /// @brief Offsetting the origin of rays prevents self-intersections
 constexpr float bias = 0.001f;
-
-// reflection
-Vector3f reflect(const Vector3f& incident, const Vector3f& normal) {
-  return incident - 2 * incident.dot(normal) * normal;
-}
-
-// refraction
-Vector3f refract(const Vector3f& incident, const Vector3f& normal,
-                 float ior_ratio) {
-  float cos_theta = std::min(-incident.dot(normal), 1.0f);
-  Vector3f r_out_perp = ior_ratio * (incident + cos_theta * normal);
-  Vector3f r_out_parallel =
-      -std::sqrt(std::abs(1.0f - r_out_perp.squaredNorm())) * normal;
-  return r_out_perp + r_out_parallel;
-}
 
 Vector3f texture_color(const Vector3f& color, std::shared_ptr<Image> texture,
                        const HitRecord& rec) {
@@ -108,8 +95,6 @@ Vector3f RayTracer::trace_ray(const Ray& ray, int depth) {
 
 bool RayTracer::hit_model(const Ray& ray, float t_min, float t_max,
                           HitRecord& rec) const {
-  if (!bbox_.intersect(ray, t_min, t_max))
-    return false;
 
   HitRecord temp_rec;
   float closest_so_far = t_max;
@@ -143,7 +128,7 @@ bool RayTracer::hit_model(const Ray& ray, float t_min, float t_max,
 
 bool RayTracer::hit_triangle(const Ray& ray, const PackedVertex& v0,
                              const PackedVertex& v1, const PackedVertex& v2,
-                             float t_min, float t_max, HitRecord& rec) const {
+                             float t_min, float t_max, HitRecord& rec) {
   const auto p0 = v0.get_position();
   const auto p1 = v1.get_position();
   const auto p2 = v2.get_position();
@@ -212,23 +197,34 @@ Vector3f RayTracer::calculate_lighting(const HitRecord& rec) {
     Vector3f light_dir = light.position - rec.point;
     float distance = light_dir.norm();
     light_dir = light_dir.normalized();
-    float attenuation = 1.0 / (distance * distance);
 
-    // diffuse
-    float diff = std::max(light_dir.dot(rec.normal), 0.0f);
-    diffuse += attenuation * diff *
+    float attenuation =
+        1.0f / (1.0f + 0.1f * distance + 0.01f * distance * distance);
+
+    float n_dot_l = light_dir.dot(rec.normal);
+    if (n_dot_l <= 0.0f) {
+      continue;
+    }
+
+    // diffuse component
+    diffuse += attenuation * n_dot_l *
                light.intensity.cwiseProduct(texture_color(
                    rec.material->diffuse, rec.material->diffuse_texture, rec));
 
-    // reflection
-    Vector3f reflect_dir = reflect(-light_dir, rec.normal);
-    float spec =
-        pow(std::max(view_dir.dot(reflect_dir), 0.0f), rec.material->shininess);
-    specular += attenuation * spec *
-                light.intensity.cwiseProduct(rec.material->specular);
+    // specular component
+    Vector3f reflect_dir = reflect(-light_dir, rec.normal).normalized();
+    float spec_intensity = std::pow(std::max(view_dir.dot(reflect_dir), 0.0f),
+                                    rec.material->shininess);
+
+    // material
+    Vector3f material_specular = rec.material->specular;
+    specular += attenuation * spec_intensity * n_dot_l *
+                light.intensity.cwiseProduct(material_specular);
   }
 
-  return ambient + diffuse + specular;
+  // Limit result
+  Vector3f result = ambient + diffuse + specular;
+  return result.cwiseMin(Vector3f(1.0f, 1.0f, 1.0f)).cwiseMax(Vector3f::Zero());
 }
 
 }  // namespace rtr

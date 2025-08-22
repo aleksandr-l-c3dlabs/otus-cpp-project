@@ -2,6 +2,7 @@ add_library(rtr-render STATIC
     framebuffer.cpp
     raytracer.cpp
     renderer.cpp
+    reflect.cpp
 )
 
 set_target_properties(rtr-render PROPERTIES

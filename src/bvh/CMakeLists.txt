@@ -1,4 +1,5 @@
 add_library(rtr-bvh STATIC 
+    aabb.cpp
     bvh.cpp
 )
 

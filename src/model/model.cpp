@@ -59,10 +59,12 @@ std::optional<Model> Model::import(const fs::path& path) {
 
   Model model;
 
-  auto attrib = reader.GetAttrib();
+  const auto& attrib = reader.GetAttrib();
+  const auto& materials = reader.GetMaterials();
 
   // Materials
-  for (const auto& mat : reader.GetMaterials()) {
+  model.materials.reserve(materials.size());
+  for (const auto& mat : materials) {
     auto material = std::make_shared<Material>(Material{
         {mat.ambient[0], mat.ambient[1], mat.ambient[2]},
         {mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]},

@@ -17,3 +17,4 @@ foreach(SUBDIR ${SUBDIRECTORIES})
         add_subdirectory(${SUBDIR})
     endif()
 endforeach()
+
