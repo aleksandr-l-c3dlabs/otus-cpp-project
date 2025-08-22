@@ -32,14 +32,14 @@ Renderer::Renderer(std::shared_ptr<const Model> model,
   // 2. Fill Light (заполняющий)
   ray_tracer_.add_light(
       {center + Vector3f(-max_dim * 1.5f, max_dim * 0.5f, -max_dim * 1.5f),
-       Vector3f(base_intensity * 0.6f, base_intensity * 0.6f,
-                base_intensity * 0.7f)});
+       Vector3f(base_intensity * 0.4f, base_intensity * 0.4f,
+                base_intensity * 0.5f)});
 
   // 3. Rim Light (контровой)
   ray_tracer_.add_light(
       {center + Vector3f(0.0f, max_dim * 1.2f, max_dim * 2.0f),
-       Vector3f(base_intensity * 0.4f, base_intensity * 0.4f,
-                base_intensity * 0.5f)});
+       Vector3f(base_intensity * 0.1f, base_intensity * 0.1f,
+                base_intensity * 0.2f)});
 }
 
 void Renderer::render(int num_threads, ProgressCallback callback) {
