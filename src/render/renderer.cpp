@@ -16,12 +16,30 @@ Renderer::Renderer(std::shared_ptr<const Model> model,
       progress_(0.0f) {
   ray_tracer_.build_bvh();
 
+  // automatic lights
+
+  auto bbox = ray_tracer_.get_root_bbox();
+  Vector3f center = (bbox.min + bbox.max) * 0.5f;
+  Vector3f size = bbox.max - bbox.min;
+  float max_dim = std::max({size.x(), size.y(), size.z()});
+  float base_intensity = max_dim * 5.0f;
+
+  // 1. Key Light (основной)
   ray_tracer_.add_light(
-      {{2.0f, -4.0f, 3.0f}, {1.5f, 1.5f, 1.5f}});  // Key light
+      {center + Vector3f(max_dim * 2.0f, max_dim * 1.5f, -max_dim * 2.0f),
+       Vector3f(base_intensity, base_intensity, base_intensity * 0.9f)});
+
+  // 2. Fill Light (заполняющий)
   ray_tracer_.add_light(
-      {{-1.0f, -1.0f, 2.0f}, {0.7f, 0.7f, 0.7f}});  // Fill light
+      {center + Vector3f(-max_dim * 1.5f, max_dim * 0.5f, -max_dim * 1.5f),
+       Vector3f(base_intensity * 0.6f, base_intensity * 0.6f,
+                base_intensity * 0.7f)});
+
+  // 3. Rim Light (контровой)
   ray_tracer_.add_light(
-      {{0.5f, 2.0f, 2.5f}, {0.9f, 0.9f, 0.9f}});  // Back light
+      {center + Vector3f(0.0f, max_dim * 1.2f, max_dim * 2.0f),
+       Vector3f(base_intensity * 0.4f, base_intensity * 0.4f,
+                base_intensity * 0.5f)});
 }
 
 void Renderer::render(int num_threads, ProgressCallback callback) {
